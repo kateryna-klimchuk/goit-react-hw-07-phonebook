@@ -1,51 +1,59 @@
+import Notiflix from 'notiflix';
 import { useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { addContact } from 'redux/actions';
+import {
+  useGetContactsQuery,
+  useAddContactMutation,
+} from '../../redux/contactSlice';
+
 import { nanoid } from 'nanoid';
 
 import { Form, Input, Label, FormButton } from './ContactForm.Styled';
 
 const ContactForm = () => {
-  const contacts = useSelector(state => state.contacts);
+  const { data } = useGetContactsQuery();
+  const [addContact] = useAddContactMutation();
 
-  const [userName, setUserName] = useState('');
+  const [name, setName] = useState('');
   const [number, setNumber] = useState('');
 
   const nameInputId = nanoid();
   const numberInputId = nanoid();
 
-  const dispatch = useDispatch();
-
   const handleInputChange = event => {
     const { name, value } = event.currentTarget;
     if (name === 'name') {
-      setUserName(value);
+      setName(value);
     }
     if (name === 'number') {
       setNumber(value);
     }
   };
 
-  const handleSubmitForm = event => {
+  const handleAddContact = async event => {
     event.preventDefault();
-    contacts.find(({ name }) => name === userName)
-      ? alert(`${userName} is already in contacts.`)
-      : dispatch(addContact(userName, number));
+    try {
+      data.find(contact => contact.name === name)
+        ? Notiflix.Notify.info(`${name} is already in contacts.`)
+        : (await addContact({ name, number })) &&
+          Notiflix.Notify.success(`${name} added to your phonebook 🚀`);
+    } catch (error) {
+      console.log(error);
+    }
     reset();
   };
 
   const reset = () => {
-    setUserName('');
+    setName('');
     setNumber('');
   };
   return (
-    <Form onSubmit={handleSubmitForm}>
+    <Form onSubmit={handleAddContact}>
       <Label htmlFor={nameInputId}>Name</Label>
 
       <Input
         type="text"
         name="name"
-        value={userName}
+        value={name}
         pattern="^[a-zA-Zа-яА-Я]+(([' -][a-zA-Zа-яА-Я ])?[a-zA-Zа-яА-Я]*)*$"
         title="Name may contain only letters, apostrophe, dash and spaces. For example Adrian, Jacob Mercer, Charles de Batz de Castelmore d'Artagnan"
         required
